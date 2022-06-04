@@ -2,10 +2,10 @@
 import numpy as np
 import io
 import re
-import translators as ts
 import xml.dom as dom
-
-
+import json
+import translators as ts
+import os
 def get_word_types(words):
 	wordtypes = set(y if "," in x[2] else x[2] for x in words for y in (x[2].split(",")))
 	return wordtypes
@@ -97,13 +97,12 @@ def build_haiku(edict,wkey_dist=None,pick_types=None,doprint=True):
 	
 def translate_haiku(haiku,translator_choice):
 	return translator_choice(haiku,from_language='ja', to_language='en')
-edict,wkey_dist=load_edict()
-# ~ for _ in range(10):
 
 def flatten_haiku(haiku_list,sep_out,sep_in):
 	return re.sub(r"\s","",sep_out.join([sep_in.join(line) for line in haiku_list]))
 
 def get_haiku_ja_en(translator_choice,N,sep_out="",sep_in="",pick_types=None):
+	edict,wkey_dist=load_edict()
 	if sep_out == "\n" or sep_in == "\n":
 		raise ValueError("Don't even think about it")
 	haiku_ja_list=[]
@@ -159,7 +158,9 @@ def furiganize_haiku(haiku_ja,furigana,sep_out="",sep_in=""):
 	return sep_out.join(haiku)
 
 def furiganize_kanji(kanji,furigana):
-	return "<ruby>{k}<rt>{f}</rt></ruby>".format(k=kanji,f=furigana)
+	if kanji != furigana:
+		return "<ruby>{k}<rt>{f}</rt></ruby>".format(k=kanji,f=furigana)
+	return "{k}".format(k=kanji)
 
 def create_page(N=5,sep_display="<br>",sep_haiku="<br>",sep_trans="/ ",translator_choice=ts.google,batch_translate=True,pick_types=None):
 	content=[]
@@ -182,9 +183,66 @@ def print_N_haikus(N=5,pick_types=None):
 		build_haiku(edict,wkey_dist,pick_types=pick_types)
 
 
+def get_haikus_ja(N=5,pick_types=None):
+	edict,wkey_dist=load_edict()
+	haiku_ja_list=[]
+	furigana_list=[]
+	for _ in range(N):
+		haiku_ja,furigana=build_haiku(edict,wkey_dist,pick_types=pick_types)
+		haiku_ja_list.append(haiku_ja)
+		furigana_list.append(furigana)
+	return haiku_ja_list,furigana_list
+
+def create_json_for_translate(N=5,sep_trans="",pick_types=None,fn="haikus",folder="data"):
+	haiku_ja_list,furigana_list=get_haikus_ja(N=N,pick_types=pick_types)
+	j={}
+	j_flat=[]
+	for ind,val in enumerate(zip(haiku_ja_list,furigana_list)):
+		h,f = val
+		flat_haiku=flatten_haiku(h,sep_out=sep_trans,sep_in="")
+		j[str(ind)]={"haiku_ja":h,"haiku_ja_flat":flat_haiku,"furigana":f,"haiku_en":""}
+		j_flat.append(flat_haiku)
+	
+	f=io.open(os.path.join(folder,"{}_raw.json".format(fn)),"w+",encoding="utf8")
+	f.write(json.dumps(j,indent=4,ensure_ascii=False))
+	f.close()
+	
+	f=io.open(os.path.join(folder,"{}_ja_flat.txt".format(fn)),"w+",encoding="utf8")
+	f.write("\n\n".join(j_flat))
+	f.close()
+
+def merge_translation_json(fn="haikus",folder="data"):
+	f = io.open(os.path.join(folder,"{}_raw.json".format(fn)),"r",encoding="utf8")
+	j=json.loads(f.read())
+	f.close()
+	haikus_en = io.open(os.path.join(folder,"{}_en_flat.txt".format(fn)),"r",encoding="utf8").read().split("\n\n")
+	for k in j.keys():
+		j[k]["haiku_en"]=haikus_en[int(k)]
+	f = io.open(os.path.join(folder,"{}_translated.json".format(fn)),"w+",encoding="utf8")
+	f.write(json.dumps(j,indent=4,ensure_ascii=False))
+	f.close()
+
+def create_page_from_json(fn="haikus",sep_display="<br>",sep_haiku="<br>",folder="data",page_fn="haiku.html"):
+	f = io.open(os.path.join(folder,"{}_translated.json".format(fn)),"r",encoding="utf8")
+	j=json.loads(f.read())
+	f.close()
+	content=[]
+	for k in j.keys():
+		haiku_ja=j[k]["haiku_ja"]
+		furigana=j[k]["furigana"]
+		haiku_en=j[k]["haiku_en"]
+		content.append(get_html_haiku(haiku_ja,furigana,haiku_en,sep_display=sep_display))
+	write_page(content=sep_haiku.join(content),fn=page_fn)
+
 def main():
-	pick_types=["cop","v5u","adj-na","adv"]
-	create_page(N=70,translator_choice=ts.deepl,sep_trans="",batch_translate=True,pick_types=None)
+	# ~ pick_types=["cop","v5u","adj-na","adv"]
+	
+	# ~ create_page(N=70,translator_choice=ts.google,sep_trans="",batch_translate=True,pick_types=None)
+	folder="data"
+	fn="haikus_2"
+	# ~ create_json_for_translate(N=100,fn=fn,folder=folder)
+	# ~ merge_translation_json(fn=fn,folder=folder)
+	create_page_from_json(fn=fn,folder=folder,page_fn="haikus_collection_b.html")
 	disclaimer="These haikus make no sense in japanese, although they respect the superficial poetic form. It is the translator which infuses them with meaning, by earnestly trying to convey their content in english, in a valid and coherent fashion, although no coherent content is present in the first place. You might understand these as wholly english works inspired by complete misunderstanding and straightforward misdirection. Indeed, translation is art."
 
 

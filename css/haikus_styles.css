@@ -1,7 +1,9 @@
+
+
 body{
 	margin:0em;
 	background: rgb(114,1,192);
-	background: linear-gradient(0deg, rgba(114,1,192,1) 0%, rgba(196,0,181,1) 50%, rgba(0,105,247,1) 100%); 
+	background: linear-gradient(0deg, var(--grad-1) 0%, var(--grad-2) 50%, var(--grad-3) 100%); 
 }
 
 .haiku-box{
