@@ -1,0 +1,55 @@
+body{
+	margin:0em;
+	background: rgb(114,1,192);
+	background: linear-gradient(0deg, rgba(114,1,192,1) 0%, rgba(196,0,181,1) 50%, rgba(0,105,247,1) 100%); 
+}
+
+.haiku-box{
+	display: flex;
+	flex-wrap: no-wrap;
+	padding: 6em 2em;
+	margin: 0em;
+	border: 0em;
+	color: #FDFDFD;
+	
+}
+
+.haiku-ja-box{
+	font-size: 4em;
+	writing-mode: vertical-rl;
+	padding: 1em;
+	border-radius: 5%;
+}
+
+.haiku-en-box{
+	padding: 4em;
+	font-size: 2em;
+	font-variant: bold;
+	text-transform: lowercase;
+}
+.disclaimer::before{
+	content: "DISCLAIMER:";
+	font-variant: small-caps;
+	font-weight: bold;
+}
+.disclaimer{
+	background: #585858;
+	color: #EAEAEA;
+	font-size: 1em;
+	font-family: monospace;
+	line-height: 1.2em;
+	padding: .2em;
+}
+
+@media (max-width: 1000px) {
+	.haiku-box{
+		flex-wrap: wrap;
+		justify-content: space-around;
+		}
+	.haiku-en-box{
+		font-size: 2.5em;
+		}
+	.disclaimer{
+		font-size: 2em;
+		}
+}
